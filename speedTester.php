@@ -121,8 +121,8 @@ class speedTester
         $process = -($percentPerIter = 100 / ($this->iterations * count($this->functions)));
 
         foreach($this->functions as $i => $function) {
-            if(!function_exists($function)) throw new speedTesterException('Нет функции', $function, PHP_EOL);
-            $result[$i] = ['function'=>$function,'iterPerSec'=>0];
+            if((is_string($function) && !function_exists($function)) || (is_array($function) && !method_exists(...$function))) throw new speedTesterException('Нет функции', implode('->',(array)$function), PHP_EOL);
+            $result[$i] = ['function'=>implode('->',(array)$function),'iterPerSec'=>0];
             for ($j=0; $j < $this->iterations; $j++) {
                 if($consoleMode) echo ' Процесс: ', $process += $percentPerIter, "%\r";
                 for ($t = time(); $t == time(););
