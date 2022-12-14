@@ -19,7 +19,7 @@ class speedTester {
 
     public function addFunction($functionName) {$this->functions = array_merge($this->functions, (array)$functionName);}
     public function addFile($fileName) {
-        foreach ($$fileName as $name) if(!file_exists($name)) return false;
+        foreach ($fileName as $name) if(!file_exists($name)) return false;
         return !!$this->files = array_merge($this->files, (array)$fileName);
     }
     public function setParams(array $params) {$this->params = $params;}
