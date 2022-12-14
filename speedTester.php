@@ -173,7 +173,7 @@ class speedTester
                     ARRAY_FILTER_USE_KEY
                 )) as $k => $col) $res[] = strlen($col) + $colLengths[$k] - mb_strlen($col);
                 printf('| %-' . implode('s | %-', $res) . 's |' . $line, ...$cols);
-                if(isset($row['answer']) && $row['answer'] != $slower['answer']) $flagSuccess = false;
+                if(isset($row['answer']) && $row['answer'] !== $slower['answer']) $flagSuccess = false;
             }
 
             if($flagSuccess) echo 'Ответ одинаковый:' , PHP_EOL , var_export($slower['answer'], true), PHP_EOL;
