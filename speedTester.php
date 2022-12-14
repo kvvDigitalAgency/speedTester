@@ -6,6 +6,23 @@
 class speedTester
 {
     /**
+     * Колонка с названием функции/файла вставляется в самое начало в другом месте
+     *
+     * @access private
+     * @var array Названия колонок
+     */
+    private $columns = [
+        'iterPerSec' => 'Итераций в сек',
+        'time' => 'Время, сек',
+        'coefficient' => 'Коэффициент',
+        'speedup' => 'Прирост скорости, +%',
+    ];
+    /**
+     * @access private
+     * @var string Интерпретатор
+     */
+    private $interpreter = '/usr/local/opt/php@7.1/bin/php';
+    /**
      * @access private
      * @var array Список добавленных файлов
      */
@@ -101,11 +118,24 @@ class speedTester
     }
 
     /**
-     * Расчеты производительности функций
+     * Подготавливаются данные для замеров тестов файлов
      *
-     * Производится замер времени выполнения каждой функции, рассчитывается коэффициент,
-     * прирост скорости, результат сортируется. Если включен консольный режим,
-     * то производятся расчеты для вывода информации и ее вывод.
+     * Подготавливаются массив файлов и колонки
+     *
+     * @access public
+     * @param bool $consoleMode Консольный режим
+     * @return array
+     * @throws speedTesterException
+     */
+    public function testFiles(bool $consoleMode = false): array
+    {
+        return $this->test($consoleMode, $this->files, ['file'=>'Файл'] + $this->columns, false);
+    }
+
+    /**
+     * Подготавливаются данные для замеров тестов функций
+     *
+     * Подготавливаются массив функций и колонки
      *
      * @access public
      * @param bool $consoleMode Консольный режим
@@ -114,23 +144,51 @@ class speedTester
      */
     public function testFunctions(bool $consoleMode = false): array
     {
-        foreach($this->files as $file) include_once $file;
+        return $this->test($consoleMode, $this->functions, ['function'=>'Функция'] + $this->columns);
+    }
 
-        $params = $this->params;
+    /**
+     * Расчеты производительности функций или файлов
+     *
+     * Производится замер времени выполнения каждой функции/файла, рассчитывается коэффициент,
+     * прирост скорости, результат сортируется. Если включен консольный режим,
+     * то производятся расчеты для вывода информации и ее вывод.
+     *
+     * @access public
+     * @param bool $consoleMode Консольный режим
+     * @param array $array Массив файлов или функций
+     * @param array $columns Колонки таблицы
+     * @param bool $functions Тестируются функции или нет
+     * @return array
+     * @throws speedTesterException
+     */
+    private function test(bool $consoleMode,array $array,array $columns,bool $functions = true): array
+    {
+        if($functions) {
+            $params = $this->params;
+            foreach ($this->files as $file) include_once $file;
+        }
+
         $result = [];
-        $process = -($percentPerIter = 100 / ($this->iterations * count($this->functions)));
+        $process = -($percentPerIter = 100 / ($this->iterations * count($array)));
 
-        foreach($this->functions as $i => $function) {
-            $result[$i] = ['function'=>is_array($function)?(is_string($function[0])?$function[0]:get_class($function[0])) . '->' . $function[1]:$function,'iterPerSec'=>0];
-            if((is_string($function) && !function_exists($function)) || (is_array($function) && !method_exists(...$function))) throw new speedTesterException('Нет функции' . $result[$i]['function'] . PHP_EOL);
+        foreach($array as $i => $item) {
+            if($functions) {
+                $result[$i] = ['function'=>is_array($item)?(is_string($item[0])?$item[0]:get_class($item[0])) . '->' . $item[1]:$item,'iterPerSec'=>0];
+                if((is_string($item) && !function_exists($item)) || (is_array($item) && !method_exists(...$item))) throw new speedTesterException('Нет функции' . $result[$i]['function'] . PHP_EOL);
+            } else {
+                $result[$i] = ['file' => $item, 'iterPerSec'=>0];
+                $cmd = $this->interpreter . ' ' . $item;
+            }
             for ($j=0; $j < $this->iterations; $j++) {
                 if($consoleMode) echo ' Процесс: ', $process += $percentPerIter, "%\r";
                 for ($t = time(); $t == time(););
-                for ($t = time(); time() == $t; $result[$i]['iterPerSec']++) call_user_func_array($function, $params);
+                if($functions) for ($t = time(); time() == $t; $result[$i]['iterPerSec']++) call_user_func_array($item, $params);
+                else for ($t = time(); time() == $t; $result[$i]['iterPerSec']++) shell_exec($cmd);
             }
             $result[$i] += [
                 'time' => 1 / ($result[$i]['iterPerSec'] = round($result[$i]['iterPerSec'] / $this->iterations, 6)),
-                'answer' => call_user_func_array($function, $params)
+                'answer' => $functions?call_user_func_array($item, $params):shell_exec($cmd)
             ];
         }
 
@@ -143,13 +201,7 @@ class speedTester
             $item['speedup'] = round($item['iterPerSec'] / $slower['iterPerSec'] * 100 - 100, 2);
         }
 
-        array_unshift($result, $columns = [
-            'function' => 'Функция',
-            'iterPerSec' => 'Итераций в сек',
-            'time' => 'Время, сек',
-            'coefficient' => 'Коэффициент',
-            'speedup' => 'Прирост скорости, +%',
-        ]);
+        array_unshift($result, $columns);
 
         if($consoleMode) {
             $i = 0;
@@ -180,7 +232,7 @@ class speedTester
             else {
                 echo 'Ответ разный:', PHP_EOL;
                 foreach ($result as $row) if(isset($row['answer']))
-                    echo PHP_EOL, 'Функция ', $row['function'], ':', PHP_EOL, var_export($row['answer'], true), PHP_EOL;
+                    echo PHP_EOL, $functions?('Функция ' . $row['function']): ('Файл ' . $row['file']), ':', PHP_EOL, var_export($row['answer'], true), PHP_EOL;
             }
 
         }
