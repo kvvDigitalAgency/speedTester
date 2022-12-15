@@ -181,7 +181,7 @@ class speedTester
                 $cmd = $this->interpreter . ' ' . $item;
             }
             for ($j=0; $j < $this->iterations; $j++) {
-                if($consoleMode) echo ' Процесс: ', $process += $percentPerIter, "%\r";
+                if($consoleMode) echo "\r", isset($str)?str_repeat(' ', mb_strlen($str)):'', "\r", $str = 'Процесс: ' . ($process += $percentPerIter) . "%";
                 for ($t = time(); $t == time(););
                 if($functions) for ($t = time(); time() == $t; $result[$i]['iterPerSec']++) call_user_func_array($item, $params);
                 else for ($t = time(); time() == $t; $result[$i]['iterPerSec']++) shell_exec($cmd);
@@ -212,9 +212,8 @@ class speedTester
                 $i++;
             }
 
-            echo $line = str_repeat('-', array_sum($colLengths) + 1 + 3 * count($colLengths)) . PHP_EOL;
+            echo "\r", str_repeat(' ', mb_strlen($str??1)), "\rГотово!", $line = PHP_EOL . str_repeat('-', array_sum($colLengths) + 1 + 3 * count($colLengths)) . PHP_EOL;
 
-            $line = PHP_EOL . $line;
             $flagSuccess = true;
 
             foreach($result as $row) {
