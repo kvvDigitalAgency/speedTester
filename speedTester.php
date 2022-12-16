@@ -21,7 +21,7 @@ class speedTester
      * @access private
      * @var string Интерпретатор
      */
-    private $interpreter = '/usr/local/opt/php@7.1/bin/php';
+    private $interpreter = 'php';
     /**
      * @access private
      * @var array Список добавленных файлов
@@ -114,7 +114,22 @@ class speedTester
      */
     public function setCountIterations(int $count): bool
     {
-        return !!$this->iterations = $count;
+        return $count > 0 && !!$this->iterations = $count;
+    }
+
+    /**
+     * Устанавливается интерпретатор для запуска тестирования файлов
+     *
+     * @access  public
+     *
+     * @param string $interpreter
+     *
+     * @return bool
+     * @example "2 функции по 10 итераций занимают ~ 40 сек."
+     */
+    public function setInterpreter(string $interpreter): bool
+    {
+        return !!$this->interpreter = $interpreter;
     }
 
     /**
@@ -183,8 +198,9 @@ class speedTester
             for ($j=0; $j < $this->iterations; $j++) {
                 if($consoleMode) echo "\r", isset($str)?str_repeat(' ', mb_strlen($str)):'', "\r", $str = 'Процесс: ' . ($process += $percentPerIter) . "%";
                 for ($t = time(); $t == time(););
-                if($functions) for ($t = time(); time() == $t; $result[$i]['iterPerSec']++) call_user_func_array($item, $params);
-                else for ($t = time(); time() == $t; $result[$i]['iterPerSec']++) shell_exec($cmd);
+                $t = time();
+                if($functions) for (; time() == $t; $result[$i]['iterPerSec']++) call_user_func_array($item, $params);
+                else for (; time() == $t; $result[$i]['iterPerSec']++) shell_exec($cmd);
             }
             $result[$i] += [
                 'time' => 1 / ($result[$i]['iterPerSec'] = round($result[$i]['iterPerSec'] / $this->iterations, 6)),
