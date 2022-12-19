@@ -76,7 +76,9 @@ final class CodeTester
      */
     public static function addFileList(array $fileList): bool
     {
-        foreach ($fileList as $name) if(!file_exists($name)) throw new CodeTesterException('Нет файла', $name, PHP_EOL);
+        foreach ($fileList as $name) if(!file_exists($name))
+            throw new CodeTesterException('Нет файла', $name, PHP_EOL);
+
         return !!self::$fileList = array_merge(self::$fileList, $fileList);
     }
 
@@ -190,22 +192,36 @@ final class CodeTester
 
         foreach($list as $i => $item) {
             if($functions) {
-                $result[$i] = ['function'=>is_array($item)?(is_string($item[0])?$item[0]:get_class($item[0])) . '->' . $item[1]:$item,'iterPerSec'=>0];
-                if((is_string($item) && !function_exists($item)) || (is_array($item) && !method_exists(...$item))) throw new CodeTesterException('Нет функции' . $result[$i]['function'] . PHP_EOL);
+                $result[$i] = [
+                    'function' => is_array($item)
+                        ? (is_string($item[0]) ? $item[0] : get_class($item[0])) . '->' . $item[1]
+                        : $item,
+                    'iterPerSec' => 0
+                ];
+
+                if((is_string($item) && !function_exists($item)) || (is_array($item) && !method_exists(...$item)))
+                    throw new CodeTesterException('Нет функции' . $result[$i]['function'] . PHP_EOL);
+
             } else {
                 $result[$i] = ['file' => $item, 'iterPerSec'=>0];
                 $cmd = self::$interpreter . ' ' . $item;
             }
+
             for ($j=0; $j < self::$iterations; $j++) {
-                if(self::$consoleMode) echo "\r", isset($str)?str_repeat(' ', mb_strlen($str)):'', "\r", $str = 'Процесс: ' . ($process += $percentPerIter) . "%";
+                if(self::$consoleMode)
+                    echo "\r", isset($str) ? str_repeat(' ', mb_strlen($str)) : '',
+                         "\r", $str = 'Процесс: ' . ($process += $percentPerIter) . "%";
+
                 for ($t = time(); $t == time(););
                 $t = time();
+
                 if($functions) for (; time() == $t; $result[$i]['iterPerSec']++) call_user_func_array($item, $params);
                 else for (; time() == $t; $result[$i]['iterPerSec']++) shell_exec($cmd);
             }
+
             $result[$i] += [
                 'time' => 1 / ($result[$i]['iterPerSec'] = round($result[$i]['iterPerSec'] / self::$iterations, 6)),
-                'answer' => $functions?call_user_func_array($item, $params):shell_exec($cmd)
+                'answer' => $functions ? call_user_func_array($item, $params) : shell_exec($cmd)
             ];
         }
 
@@ -223,36 +239,45 @@ final class CodeTester
         if(self::$consoleMode) {
             $i = 0;
             $colLengths = [];
+
             foreach($result[0] as $k => $v) {
                 foreach(array_merge([$v], array_column($result, $k)) as $V)
                     if(mb_strlen($V) > ($colLengths[$i] ?? 0)) $colLengths[$i] = mb_strlen($V);
                 $i++;
             }
 
-            echo "\r", str_repeat(' ', mb_strlen($str??1)), "\rГотово!", $line = PHP_EOL . str_repeat('-', array_sum($colLengths) + 1 + 3 * count($colLengths)) . PHP_EOL;
+            echo "\r", str_repeat(' ', mb_strlen($str??1)),
+                 "\rГотово!", $line = PHP_EOL . str_repeat('-', array_sum($colLengths) + 1 + 3 * count($colLengths)) . PHP_EOL;
 
             $flagSuccess = true;
 
             foreach($result as $row) {
                 $res = [];
+
                 foreach ($cols = array_values(array_filter(
                     array_replace($columns, $row),
                     function($k) use($columns) {return isset($columns[$k]);},
                     ARRAY_FILTER_USE_KEY
                 )) as $k => $col) $res[] = strlen($col) + $colLengths[$k] - mb_strlen($col);
+
                 printf('| %-' . implode('s | %-', $res) . 's |' . $line, ...$cols);
+
                 if(isset($row['answer']) && $row['answer'] !== $slower['answer']) $flagSuccess = false;
             }
 
             if($flagSuccess) echo 'Ответ одинаковый:' , PHP_EOL , var_export($slower['answer'], true), PHP_EOL;
             else {
                 echo 'Ответ разный:', PHP_EOL;
+
                 foreach ($result as $row) if(isset($row['answer']))
-                    echo PHP_EOL, $functions?('Функция ' . $row['function']): ('Файл ' . $row['file']), ':', PHP_EOL, var_export($row['answer'], true), PHP_EOL;
+                    echo PHP_EOL, $functions ? ('Функция ' . $row['function']) : ('Файл ' . $row['file']), ':',
+                         PHP_EOL, var_export($row['answer'], true), PHP_EOL;
             }
 
         }
+
         array_shift($result);
+
         return $result;
     }
 
