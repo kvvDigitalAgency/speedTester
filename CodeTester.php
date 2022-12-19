@@ -17,26 +17,37 @@ final class CodeTester
         'coefficient' => 'Коэффициент',
         'speedup' => 'Прирост скорости, +%',
     ];
+
     /**
      * @access private
      * @var string Интерпретатор
      */
     private static $interpreter = 'php';
+
     /**
      * @access private
      * @var array Список добавленных файлов
      */
     private static $fileList = [];
+
     /**
      * @access private
      * @var array Список установленных параметров для передачи в функции
      */
     private static $paramList = [];
+
     /**
      * @access private
      * @var array Список добавленных функций
      */
     private static $functionList = [];
+
+    /**
+     * @access private
+     * @var bool Режим вывода в консоль
+     */
+    private static $consoleMode = false;
+
     /**
      * @access private
      * @var int Количество итераций вызова каждой функции
@@ -67,6 +78,18 @@ final class CodeTester
     {
         foreach ($fileList as $name) if(!file_exists($name)) throw new CodeTesterException('Нет файла', $name, PHP_EOL);
         return !!self::$fileList = array_merge(self::$fileList, $fileList);
+    }
+
+    /**
+     * Устанавливает режим вывода в консоль
+     *
+     * @access public
+     * @param bool $consoleMode
+     * @return bool
+     */
+    public static function setConsoleMode(bool $consoleMode): bool
+    {
+        return !!self::$consoleMode = $consoleMode;
     }
 
     /**
@@ -119,13 +142,12 @@ final class CodeTester
      * Подготавливаются массив файлов и колонки
      *
      * @access public
-     * @param bool $consoleMode Консольный режим
      * @return array
      * @throws CodeTesterException
      */
-    public static function testFiles(bool $consoleMode = false): array
+    public static function testFiles(): array
     {
-        return self::test($consoleMode, self::$fileList, ['file'=>'Файл'] + self::$columns, false);
+        return self::test(self::$fileList, ['file'=>'Файл'] + self::$columns, false);
     }
 
     /**
@@ -134,13 +156,12 @@ final class CodeTester
      * Подготавливаются массив функций и колонки
      *
      * @access public
-     * @param bool $consoleMode Консольный режим
      * @return array
      * @throws CodeTesterException
      */
-    public static function testFunctions(bool $consoleMode = false): array
+    public static function testFunctions(): array
     {
-        return self::test($consoleMode, self::$functionList, ['function'=>'Функция'] + self::$columns);
+        return self::test(self::$functionList, ['function'=>'Функция'] + self::$columns);
     }
 
     /**
@@ -151,14 +172,13 @@ final class CodeTester
      * то производятся расчеты для вывода информации и ее вывод.
      *
      * @access public
-     * @param bool $consoleMode Консольный режим
      * @param array $list Список файлов или функций
      * @param array $columns Колонки таблицы
      * @param bool $functions Тестируются функции или нет
      * @return array
      * @throws CodeTesterException
      */
-    private static function test(bool $consoleMode, array $list, array $columns, bool $functions = true): array
+    private static function test(array $list, array $columns, bool $functions = true): array
     {
         if($functions) {
             $params = self::$paramList;
@@ -177,7 +197,7 @@ final class CodeTester
                 $cmd = self::$interpreter . ' ' . $item;
             }
             for ($j=0; $j < self::$iterations; $j++) {
-                if($consoleMode) echo "\r", isset($str)?str_repeat(' ', mb_strlen($str)):'', "\r", $str = 'Процесс: ' . ($process += $percentPerIter) . "%";
+                if(self::$consoleMode) echo "\r", isset($str)?str_repeat(' ', mb_strlen($str)):'', "\r", $str = 'Процесс: ' . ($process += $percentPerIter) . "%";
                 for ($t = time(); $t == time(););
                 $t = time();
                 if($functions) for (; time() == $t; $result[$i]['iterPerSec']++) call_user_func_array($item, $params);
@@ -200,7 +220,7 @@ final class CodeTester
 
         array_unshift($result, $columns);
 
-        if($consoleMode) {
+        if(self::$consoleMode) {
             $i = 0;
             $colLengths = [];
             foreach($result[0] as $k => $v) {
