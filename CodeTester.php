@@ -3,7 +3,7 @@
 /**
  *
  */
-class speedTester
+class CodeTester
 {
     /**
      * Колонка с названием функции/файла вставляется в самое начало в другом месте
@@ -26,17 +26,17 @@ class speedTester
      * @access private
      * @var array Список добавленных файлов
      */
-    private $files = [];
+    private $fileList = [];
     /**
      * @access private
      * @var array Список установленных параметров для передачи в функции
      */
-    private $params = [];
+    private $paramList = [];
     /**
      * @access private
      * @var array Список добавленных функций
      */
-    private $functions = [];
+    private $functionList = [];
     /**
      * @access private
      * @var int Количество итераций вызова каждой функции
@@ -44,7 +44,7 @@ class speedTester
     private $iterations = 10;
     /**
      * @access private
-     * @var speedTester Созданный единожды объект класса
+     * @var CodeTester Созданный единожды объект класса
      */
     private static $obj;
 
@@ -54,9 +54,9 @@ class speedTester
      * не теряя при этом все подготовленные в другом месте данные
      *
      * @access public
-     * @return speedTester
+     * @return CodeTester
      */
-    public static function create(): speedTester
+    public static function create(): CodeTester
     {
         // это задача на внимательность, но мне понравилось
         return self::$obj?:self::$obj = new self();
@@ -66,38 +66,38 @@ class speedTester
      * Добавляются функции, которые нужно протестировать
      *
      * @access public
-     * @param array $functionNames Список Функций
+     * @param array $functionList Список Функций
      * @return bool
      */
-    public function addFunctions(array $functionNames): bool
+    public function addFunctionList(array $functionList): bool
     {
-        return !!$this->functions = array_merge($this->functions, $functionNames);
+        return !!$this->functionList = array_merge($this->functionList, $functionList);
     }
 
     /**
      * Добавляются файлы, которые нужно подключить
      *
      * @access public
-     * @param array $fileNames Список файлов
+     * @param array $fileList Список файлов
      * @return bool
-     * @throws speedTesterException
+     * @throws CodeTesterException
      */
-    public function addFiles(array $fileNames): bool
+    public function addFileList(array $fileList): bool
     {
-        foreach ($fileNames as $name) if(!file_exists($name)) throw new speedTesterException('Нет файла', $name, PHP_EOL);
-        return !!$this->files = array_merge($this->files, $fileNames);
+        foreach ($fileList as $name) if(!file_exists($name)) throw new CodeTesterException('Нет файла', $name, PHP_EOL);
+        return !!$this->fileList = array_merge($this->fileList, $fileList);
     }
 
     /**
      * Устанавливаются параметры, с которыми функция будет вызываться
      *
      * @access public
-     * @param array $params Список параметров
+     * @param array $paramList Список параметров
      * @return bool
      */
-    public function setParams(array $params): bool
+    public function setParamList(array $paramList): bool
     {
-        return !!$this->params = $params;
+        return !!$this->paramList = $paramList;
     }
 
     /**
@@ -140,11 +140,11 @@ class speedTester
      * @access public
      * @param bool $consoleMode Консольный режим
      * @return array
-     * @throws speedTesterException
+     * @throws CodeTesterException
      */
     public function testFiles(bool $consoleMode = false): array
     {
-        return $this->test($consoleMode, $this->files, ['file'=>'Файл'] + $this->columns, false);
+        return $this->test($consoleMode, $this->fileList, ['file'=>'Файл'] + $this->columns, false);
     }
 
     /**
@@ -155,11 +155,11 @@ class speedTester
      * @access public
      * @param bool $consoleMode Консольный режим
      * @return array
-     * @throws speedTesterException
+     * @throws CodeTesterException
      */
     public function testFunctions(bool $consoleMode = false): array
     {
-        return $this->test($consoleMode, $this->functions, ['function'=>'Функция'] + $this->columns);
+        return $this->test($consoleMode, $this->functionList, ['function'=>'Функция'] + $this->columns);
     }
 
     /**
@@ -171,26 +171,26 @@ class speedTester
      *
      * @access public
      * @param bool $consoleMode Консольный режим
-     * @param array $array Массив файлов или функций
+     * @param array $list Список файлов или функций
      * @param array $columns Колонки таблицы
      * @param bool $functions Тестируются функции или нет
      * @return array
-     * @throws speedTesterException
+     * @throws CodeTesterException
      */
-    private function test(bool $consoleMode,array $array,array $columns,bool $functions = true): array
+    private function test(bool $consoleMode, array $list, array $columns, bool $functions = true): array
     {
         if($functions) {
-            $params = $this->params;
-            foreach ($this->files as $file) include_once $file;
+            $params = $this->paramList;
+            foreach ($this->fileList as $file) include_once $file;
         }
 
         $result = [];
-        $process = -($percentPerIter = 100 / ($this->iterations * count($array)));
+        $process = -($percentPerIter = 100 / ($this->iterations * count($list)));
 
-        foreach($array as $i => $item) {
+        foreach($list as $i => $item) {
             if($functions) {
                 $result[$i] = ['function'=>is_array($item)?(is_string($item[0])?$item[0]:get_class($item[0])) . '->' . $item[1]:$item,'iterPerSec'=>0];
-                if((is_string($item) && !function_exists($item)) || (is_array($item) && !method_exists(...$item))) throw new speedTesterException('Нет функции' . $result[$i]['function'] . PHP_EOL);
+                if((is_string($item) && !function_exists($item)) || (is_array($item) && !method_exists(...$item))) throw new CodeTesterException('Нет функции' . $result[$i]['function'] . PHP_EOL);
             } else {
                 $result[$i] = ['file' => $item, 'iterPerSec'=>0];
                 $cmd = $this->interpreter . ' ' . $item;
