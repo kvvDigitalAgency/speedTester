@@ -3,7 +3,7 @@
 /**
  *
  */
-class CodeTester
+final class CodeTester
 {
     /**
      * Колонка с названием функции/файла вставляется в самое начало в другом месте
@@ -11,7 +11,7 @@ class CodeTester
      * @access private
      * @var array Названия колонок
      */
-    private $columns = [
+    private static $columns = [
         'iterPerSec' => 'Итераций в сек',
         'time' => 'Время, сек',
         'coefficient' => 'Коэффициент',
@@ -21,46 +21,27 @@ class CodeTester
      * @access private
      * @var string Интерпретатор
      */
-    private $interpreter = 'php';
+    private static $interpreter = 'php';
     /**
      * @access private
      * @var array Список добавленных файлов
      */
-    private $fileList = [];
+    private static $fileList = [];
     /**
      * @access private
      * @var array Список установленных параметров для передачи в функции
      */
-    private $paramList = [];
+    private static $paramList = [];
     /**
      * @access private
      * @var array Список добавленных функций
      */
-    private $functionList = [];
+    private static $functionList = [];
     /**
      * @access private
      * @var int Количество итераций вызова каждой функции
      */
-    private $iterations = 10;
-    /**
-     * @access private
-     * @var CodeTester Созданный единожды объект класса
-     */
-    private static $obj;
-
-    /** Функция, реализующая паттерн singleton
-     *
-     * Делает возможным вызов кода из нескольких мест и областей видимостей,
-     * не теряя при этом все подготовленные в другом месте данные
-     *
-     * @access public
-     * @return CodeTester
-     */
-    public static function create(): CodeTester
-    {
-        // это задача на внимательность, но мне понравилось
-        return self::$obj?:self::$obj = new self();
-    }
+    private static $iterations = 10;
 
     /**
      * Добавляются функции, которые нужно протестировать
@@ -69,9 +50,9 @@ class CodeTester
      * @param array $functionList Список Функций
      * @return bool
      */
-    public function addFunctionList(array $functionList): bool
+    public static function addFunctionList(array $functionList): bool
     {
-        return !!$this->functionList = array_merge($this->functionList, $functionList);
+        return !!self::$functionList = array_merge(self::$functionList, $functionList);
     }
 
     /**
@@ -82,10 +63,10 @@ class CodeTester
      * @return bool
      * @throws CodeTesterException
      */
-    public function addFileList(array $fileList): bool
+    public static function addFileList(array $fileList): bool
     {
         foreach ($fileList as $name) if(!file_exists($name)) throw new CodeTesterException('Нет файла', $name, PHP_EOL);
-        return !!$this->fileList = array_merge($this->fileList, $fileList);
+        return !!self::$fileList = array_merge(self::$fileList, $fileList);
     }
 
     /**
@@ -95,9 +76,9 @@ class CodeTester
      * @param array $paramList Список параметров
      * @return bool
      */
-    public function setParamList(array $paramList): bool
+    public static function setParamList(array $paramList): bool
     {
-        return !!$this->paramList = $paramList;
+        return !!self::$paramList = $paramList;
     }
 
     /**
@@ -112,9 +93,9 @@ class CodeTester
      * @param int $count Количество итераций
      * @return bool
      */
-    public function setCountIterations(int $count): bool
+    public static function setCountIterations(int $count): bool
     {
-        return $count > 0 && !!$this->iterations = $count;
+        return $count > 0 && !!self::$iterations = $count;
     }
 
     /**
@@ -127,9 +108,9 @@ class CodeTester
      * @return bool
      * @example "2 функции по 10 итераций занимают ~ 40 сек."
      */
-    public function setInterpreter(string $interpreter): bool
+    public static function setInterpreter(string $interpreter): bool
     {
-        return !!$this->interpreter = $interpreter;
+        return !!self::$interpreter = $interpreter;
     }
 
     /**
@@ -142,9 +123,9 @@ class CodeTester
      * @return array
      * @throws CodeTesterException
      */
-    public function testFiles(bool $consoleMode = false): array
+    public static function testFiles(bool $consoleMode = false): array
     {
-        return $this->test($consoleMode, $this->fileList, ['file'=>'Файл'] + $this->columns, false);
+        return self::test($consoleMode, self::$fileList, ['file'=>'Файл'] + self::$columns, false);
     }
 
     /**
@@ -157,9 +138,9 @@ class CodeTester
      * @return array
      * @throws CodeTesterException
      */
-    public function testFunctions(bool $consoleMode = false): array
+    public static function testFunctions(bool $consoleMode = false): array
     {
-        return $this->test($consoleMode, $this->functionList, ['function'=>'Функция'] + $this->columns);
+        return self::test($consoleMode, self::$functionList, ['function'=>'Функция'] + self::$columns);
     }
 
     /**
@@ -177,15 +158,15 @@ class CodeTester
      * @return array
      * @throws CodeTesterException
      */
-    private function test(bool $consoleMode, array $list, array $columns, bool $functions = true): array
+    private static function test(bool $consoleMode, array $list, array $columns, bool $functions = true): array
     {
         if($functions) {
-            $params = $this->paramList;
-            foreach ($this->fileList as $file) include_once $file;
+            $params = self::$paramList;
+            foreach (self::$fileList as $file) include_once $file;
         }
 
         $result = [];
-        $process = -($percentPerIter = 100 / ($this->iterations * count($list)));
+        $process = -($percentPerIter = 100 / (self::$iterations * count($list)));
 
         foreach($list as $i => $item) {
             if($functions) {
@@ -193,9 +174,9 @@ class CodeTester
                 if((is_string($item) && !function_exists($item)) || (is_array($item) && !method_exists(...$item))) throw new CodeTesterException('Нет функции' . $result[$i]['function'] . PHP_EOL);
             } else {
                 $result[$i] = ['file' => $item, 'iterPerSec'=>0];
-                $cmd = $this->interpreter . ' ' . $item;
+                $cmd = self::$interpreter . ' ' . $item;
             }
-            for ($j=0; $j < $this->iterations; $j++) {
+            for ($j=0; $j < self::$iterations; $j++) {
                 if($consoleMode) echo "\r", isset($str)?str_repeat(' ', mb_strlen($str)):'', "\r", $str = 'Процесс: ' . ($process += $percentPerIter) . "%";
                 for ($t = time(); $t == time(););
                 $t = time();
@@ -203,7 +184,7 @@ class CodeTester
                 else for (; time() == $t; $result[$i]['iterPerSec']++) shell_exec($cmd);
             }
             $result[$i] += [
-                'time' => 1 / ($result[$i]['iterPerSec'] = round($result[$i]['iterPerSec'] / $this->iterations, 6)),
+                'time' => 1 / ($result[$i]['iterPerSec'] = round($result[$i]['iterPerSec'] / self::$iterations, 6)),
                 'answer' => $functions?call_user_func_array($item, $params):shell_exec($cmd)
             ];
         }
